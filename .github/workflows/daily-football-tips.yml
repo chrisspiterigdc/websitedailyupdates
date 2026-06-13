@@ -1,0 +1,38 @@
+name: Daily Football Tips
+
+on:
+  schedule:
+    # 2pm BST (UTC+1) = 13:00 UTC — runs daily
+    # Note: in winter (GMT), update to '0 14 * * *' for 2pm GMT
+    - cron: '0 13 * * *'
+  workflow_dispatch: # allows manual trigger from GitHub Actions tab
+
+jobs:
+  daily-tips:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Daily Football Tips Routine
+        uses: anthropics/claude-code-action@beta
+        env:
+          # MCP server credentials — add these as GitHub repository secrets
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: "25"
+          prompt: |
+            Read the README.md in this repository and follow the instructions exactly.
+
+            Run the daily football tips routine:
+            1. Fetch tomorrow's World Cup fixtures using the n8n workflow (ID: Wd4kzM0Oa7G6dv4X)
+            2. Validate the fixture data
+            3. Generate the Football Acca, BTTS Acca, and Bet Builder content
+            4. Run all content through /the-humanizer before posting
+            5. Post to Slack channel C0AT6L5DSNQ
+
+            If anything fails, post the failure reason to Slack channel C0AT6L5DSNQ.
