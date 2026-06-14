@@ -1,18 +1,18 @@
 # Daily Football Tips Routine
 
-This routine runs every day at **2:00 PM** and posts the following day's football betting tips to Slack.
+This routine runs every day at **2:00 PM BST** and posts the following day's football betting tips to Slack.
 
 ---
 
 ## Overview
 
-The routine generates and posts three tip sections for the following day's matches:
+The routine generates and posts three tip sections for upcoming matches:
 
 1. **Daily Football Acca** — match result/handicap selections with detailed reasoning
 2. **Daily BTTS Acca** — Both Teams To Score Yes/No selections with reasoning
 3. **Daily Bet Builder** — 3 legs from a single match with reasoning for each leg
 
-All content is posted as a single combined Slack thread to channel **C0AVBC6256C**.
+All content is posted as a single combined Slack thread to channel **C0AT6L5DSNQ**.
 
 ---
 
@@ -20,16 +20,14 @@ All content is posted as a single combined Slack thread to channel **C0AVBC6256C
 
 ### Step 1 — Fetch fixture data
 
-Use the **n8n MCP tool** (workflow ID: `2Ki8OH2pDXd7J0DI`) to fetch the following day's football fixtures.
+Use the **n8n MCP tool** (workflow ID: `Wd4kzM0Oa7G6dv4X`) to fetch upcoming fixtures. Call `execute_workflow` with no input — the workflow calculates the correct time window automatically (fixtures starting between 8 and 30 hours from now).
 
 Expected data from the workflow:
 - Fixture list (teams, kick-off times, competition)
-- Current odds for match result, handicap, BTTS
-- Team form (recent results)
-- Injury and suspension news
-- Any other relevant match context
+- Status (unplayed only)
 
-If the workflow returns incomplete data (blank fields, missing odds, impossible values, or dates outside the expected range), flag the issue and stop. Do not proceed with bad data.
+If the workflow returns no fixtures or fails, post to Slack and stop:
+> Routine failed: n8n workflow returned no data
 
 If the workflow cannot return data for a specific field, supplement **only from these approved sources**:
 - BBC Sport
@@ -44,107 +42,106 @@ Do not use any other source.
 
 Before generating any content, check:
 - [ ] All fixtures have valid team names and kick-off times
-- [ ] Dates match the expected next-day range
-- [ ] Odds are present and within realistic ranges
-- [ ] No blank or null fields in key columns
+- [ ] Status is "unplayed"
+- [ ] At least 2 valid fixtures returned
 
-If validation fails on any fixture, exclude that fixture and log the issue. If fewer than 2 valid fixtures remain, post the following to Slack and stop:
-
-> Routine failed: insufficient valid fixture data to generate tips.
+If fewer than 2 valid fixtures remain after validation, post to Slack and stop:
+> Routine failed: insufficient valid fixture data to generate tips
 
 ---
 
 ### Step 3 — Select picks
 
 #### Daily Football Acca
-- Select **3 to 5 matches** from the following day's fixtures
+- Select **3 to 5 matches** from the fixture list
 - For each match, choose the strongest selection (match result, handicap, or other market)
 - Base selections on: current form, head-to-head, injuries, odds value, and competition context
 - Avoid heavy favourites priced below 1/5 unless conviction is extremely high
 - Aim for a balanced acca with genuine reasoning behind every pick
 
 #### Daily BTTS Acca
-- Select **3 to 5 matches** (can be the same matches as the football acca or different — choose whichever gives the strongest tips)
+- Select **3 to 5 matches** (can overlap with football acca or be different)
 - For each match, pick BTTS Yes or BTTS No
-- Base the selection on: recent scoring and clean sheet records for both teams, attacking quality, defensive solidity, and match context
+- Base on: recent scoring and clean sheet records, attacking quality, defensive solidity, match context
 
 #### Daily Bet Builder
-- Select **1 match** from the following day's fixtures — choose the match with the most interesting single-game angles
+- Select **1 match** from the fixture list
 - Build **3 legs** from that one match
-- Leg types can include: player to score, player to score or assist, player shots on target, player fouls won, team to win a half, total goals markets, or similar
+- Leg types: player to score, player to score or assist, player shots on target, player fouls won, team to win a half, total goals markets, or similar
 - Each leg must have a clear, stats-based reason for inclusion
 
 ---
 
 ### Step 4 — Generate written content
 
-Write all content as per the format below. Content must:
+Write all content in the style of the examples below. Content must:
 - Sound natural and human — no AI-sounding phrasing, bullet points, or generic filler
 - Include real data (form, stats, injuries) woven into flowing paragraphs
-- Match the tone of the examples in this README
 - Be specific — name players, reference recent results, cite relevant stats
+- Use no em dashes (—) anywhere — replace with commas, periods, colons, or parentheses
 
 #### Football Acca format (repeat per selection):
 ```
 [Match Name] - [Selection]
 [Paragraph 1: Context on the weaker/underdog side — form, problems, why they struggle here]
 [Paragraph 2: Case for the selection — form, key players, why they win/cover]
-[Paragraph 3: Closing conviction — why this is a confident pick, reference odds if relevant]
+[Paragraph 3: Closing conviction — why this is a confident pick]
 ```
 
 #### BTTS format (repeat per selection):
 ```
 [Match Name] - BTTS [Yes/No]
-[Paragraph 1: Scoring/defensive form for side A — why they score or don't]
-[Paragraph 2: Scoring/defensive form for side B — why they score or don't]
-[Paragraph 3: Conclusion — why Yes or No is the right call]
+[Paragraph 1: Scoring/defensive form for side A]
+[Paragraph 2: Scoring/defensive form for side B]
+[Paragraph 3: Conclusion — why Yes or No]
 ```
 
 #### Bet Builder format (repeat per leg):
 ```
 [Player/Team — Leg Selection]
-[Paragraph: Why this leg lands — reference current form, role in the team, opponent's tendencies, relevant stats. 3–5 sentences.]
+[Paragraph: Why this leg lands — form, role, opponent tendencies, stats. 3-5 sentences.]
 ```
 
 ---
 
-### Step 5 — Run all content through /the-humanizer
+### Step 5 — Humanize all content
 
-This step is **mandatory and cannot be skipped.**
+Before posting, review every section of generated content and apply the humanizer rules from `.claude/skills/the-humanizer/SKILL.md`.
 
-Before posting anything to Slack, run every section of generated content through `/the-humanizer`.
+If the `/the-humanizer` skill is available as a callable command, run the content through it.
 
-If the humanizer output changes the meaning of any selection or tip, revert to the pre-humanizer version for that selection only and flag it in the Slack thread.
+If `/the-humanizer` is not available as a callable command, apply the rules directly by reading `.claude/skills/the-humanizer/SKILL.md` from this repository and following the rewrite instructions manually. **Do not stop — continue with the manual application of the rules.**
+
+Key rules to apply in either case:
+- No em dashes anywhere
+- No AI vocabulary (delve, leverage, tapestry, nuanced, foster, utilize, seamless, robust, holistic, etc.)
+- No filler openers ("In today's...", "When it comes to...", "At the end of the day")
+- No summary closers — end with a conviction statement or open point
+- Vary sentence length — mix short punchy lines with longer analytical ones
+- Be specific: name players, cite stats, reference real results
 
 ---
 
 ### Step 6 — Post to Slack
 
-Post to channel **C0AVBC6256C** only. Use the Slack MCP tool — no bot token.
+Post to channel **C0AT6L5DSNQ** only. Use the Slack MCP tool.
 
-**Structure:**
-
-**Main message** (keep under 4,500 characters):
+**Main message:**
 ```
-:football: Daily Tips — [Date of matches, e.g. Sunday 15 June]
+:football: Daily Tips — [Date]
 
-Today's three tips sections are ready. Full breakdowns in the thread below.
+Tips ready. Full breakdowns in the thread below.
 
 :white_check_mark: Football Acca: [X selections]
 :white_check_mark: BTTS Acca: [X selections]
 :white_check_mark: Bet Builder: [Match name] — 3 legs
 ```
 
-**Thread reply 1 — Football Acca:**
-Full written content for all football acca selections.
+**Thread reply 1 — Football Acca**
+**Thread reply 2 — BTTS Acca**
+**Thread reply 3 — Bet Builder**
 
-**Thread reply 2 — BTTS Acca:**
-Full written content for all BTTS selections.
-
-**Thread reply 3 — Bet Builder:**
-Full written content for all 3 bet builder legs, preceded by the match name and a one-line intro.
-
-If any single thread reply exceeds 4,500 characters, split it into further replies and label them (e.g. "Football Acca — continued").
+If any reply exceeds 4,500 characters, split into further replies labelled (e.g. "Football Acca — continued").
 
 ---
 
@@ -152,17 +149,15 @@ If any single thread reply exceeds 4,500 characters, split it into further repli
 
 | Situation | Action |
 |---|---|
-| README.md not accessible at session start | Post to Slack: `Routine failed: README.md not accessible` and stop |
-| n8n workflow fails to return data | Post to Slack: `Routine failed: n8n workflow returned no data` and stop |
-| Validation fails on all/most fixtures | Post to Slack: `Routine failed: insufficient valid fixture data` and stop |
-| /the-humanizer unavailable | Stop. Do not post unhumanized content |
-| Slack post fails | Retry once. If it fails again, stop and log the error |
+| README.md not accessible | Post to Slack: `Routine failed: README.md not accessible` and stop |
+| n8n workflow fails | Post to Slack: `Routine failed: n8n workflow returned no data` and stop |
+| Fewer than 2 valid fixtures | Post to Slack: `Routine failed: insufficient valid fixture data` and stop |
+| `/the-humanizer` skill not callable | Read `.claude/skills/the-humanizer/SKILL.md` and apply rules manually. Do not stop. |
+| Slack post fails | Retry once. If it fails again, stop and log the error. |
 
 ---
 
 ## Content tone — example extracts
-
-The writing should match this style:
 
 > Qatar have been appalling in the build-up, losing three of their last four competitive matches. Their 2025 Arab Cup campaign ended at the group stage following a 3-0 defeat to Tunisia — poor form for a side about to face one of the tournament favourites.
 
@@ -176,8 +171,8 @@ Always: specific, confident, grounded in data, written in a natural voice.
 
 ## Reference
 
-- Slack channel: `C0AVBC6256C`
-- n8n workflow ID: `2Ki8OH2pDXd7J0DI`
+- Slack channel: `C0AT6L5DSNQ`
+- n8n workflow ID: `Wd4kzM0Oa7G6dv4X` (fetches World Cup fixtures, 8-30hr window)
 - Approved data sources: BBC Sport, Eurosport, Flashscore
-- Mandatory skill: `/the-humanizer` (run before any Slack post)
-- Schedule: daily at 2:00 PM, tips for the following day's matches
+- Humanizer skill: `.claude/skills/the-humanizer/SKILL.md`
+- Schedule: daily at 13:00 UTC (2pm BST)
